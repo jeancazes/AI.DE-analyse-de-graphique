@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 Analyse de Graphiques Scientifiques</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary:#4f46e5; --primary-light:#818cf8; --primary-dark:#3730a3;
+  --bg:#eef2ff; --card:#fff; --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+  --facile:#10b981; --inter:#f59e0b; --difficile:#ef4444; --expert:#7c3aed;
+  --radius:18px; --shadow:0 4px 20px rgba(79,70,229,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+
+/* ── HEADER ── */
+.app-header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(79,70,229,.35);position:sticky;top:0;z-index:100}
+.app-header h1{font-size:1.15rem;font-weight:700}
+.app-header p{font-size:.75rem;opacity:.8;margin-top:2px}
+.hdr-btns{display:flex;gap:8px}
+.btn-hdr{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:10px;padding:7px 13px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-hdr:hover{background:rgba(255,255,255,.35)}
+.btn-hdr.round{border-radius:50%;width:38px;height:38px;padding:0;font-size:1rem}
+
+/* ── SETTINGS ── */
+#settings-panel{background:var(--card);border-bottom:2px solid var(--primary-light);padding:0 24px;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease}
+#settings-panel.open{max-height:130px;padding:16px 24px}
+#settings-panel label{font-size:.82rem;font-weight:600;color:var(--muted)}
+.api-row{display:flex;gap:8px;margin-top:7px}
+.api-row input{flex:1;border:2px solid var(--border);border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;transition:border-color .2s}
+.api-row input:focus{border-color:var(--primary)}
+.btn-save-api{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer}
+.api-status{font-size:.75rem;margin-top:5px}
+
+/* ── METHODOLOGY MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,15,35,.6);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border-radius:20px;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.3);animation:popIn .3s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.modal-header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:20px 24px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:1.1rem;font-weight:700}
+.btn-close-modal{background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1.1rem;cursor:pointer;transition:background .2s}
+.btn-close-modal:hover{background:rgba(255,255,255,.4)}
+.modal-body{padding:20px 24px}
+.method-section{margin-bottom:20px}
+.method-section h3{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.method-section p,.method-section li{font-size:.9rem;color:var(--text);line-height:1.6;margin-bottom:5px}
+.method-section ul{list-style:none;padding:0}
+.method-section ul li::before{content:"→ ";color:var(--primary);font-weight:700}
+.method-box{background:#f8faff;border-radius:12px;padding:14px 16px;border-left:4px solid var(--primary);margin-top:8px}
+.method-box.green{background:#f0fdf4;border-color:#10b981}
+.method-box.red{background:#fff1f2;border-color:#ef4444}
+.method-example{font-size:.88rem;font-style:italic;color:var(--text);line-height:1.65}
+.verb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.verb-card{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.verb-card .vt{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.verb-card .vt.up{color:var(--facile)}.verb-card .vt.down{color:var(--difficile)}.verb-card .vt.stable{color:var(--inter)}
+.verb-card p{font-size:.78rem;color:var(--muted);line-height:1.5}
+
+/* ── CONTAINER ── */
+.container{max-width:860px;margin:0 auto;padding:20px 16px}
+
+/* ── NAV PAR NIVEAUX ── */
+.nav-levels{margin-bottom:20px}
+.nav-group{margin-bottom:10px}
+.nav-group-header{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.nav-group-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 10px;border-radius:99px}
+.nl-facile{background:#d1fae5;color:#065f46}
+.nl-inter{background:#fef3c7;color:#92400e}
+.nl-difficile{background:#fee2e2;color:#991b1b}
+.nl-expert{background:#ede9fe;color:#4c1d95}
+.nl-custom{background:#e0e7ff;color:#3730a3}
+.nav-dots{display:flex;flex-wrap:wrap;gap:6px}
+.ex-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:.75rem;font-weight:700;color:var(--muted);transition:all .22s;display:flex;align-items:center;justify-content:center}
+.ex-dot:hover{transform:scale(1.12)}
+.ex-dot.active-facile{background:var(--facile);border-color:var(--facile);color:#fff;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+.ex-dot.active-inter{background:var(--inter);border-color:var(--inter);color:#fff;box-shadow:0 0 0 3px rgba(245,158,11,.25)}
+.ex-dot.active-difficile{background:var(--difficile);border-color:var(--difficile);color:#fff;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+.ex-dot.active-expert{background:var(--expert);border-color:var(--expert);color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.ex-dot.active-custom{background:var(--primary);border-color:var(--primary);color:#fff}
+.ex-dot.done{background:#94a3b8;border-color:#94a3b8;color:#fff}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.exercise-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.ex-meta{flex:1;min-width:200px}
+.ex-meta h2{font-size:1.1rem;font-weight:700;margin-bottom:6px}
+.badges{display:flex;flex-wrap:wrap;gap:5px}
+.badge{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.4px}
+.badge-facile{background:#d1fae5;color:#065f46}
+.badge-inter{background:#fef3c7;color:#92400e}
+.badge-difficile{background:#fee2e2;color:#991b1b}
+.badge-expert{background:#ede9fe;color:#4c1d95}
+.badge-matiere{background:#ede9fe;color:#4c1d95}
+.badge-classe{background:#e0f2fe;color:#075985}
+.source-text{font-size:.7rem;color:var(--muted);font-style:italic;margin-top:4px}
+.ex-progress{text-align:right;min-width:80px}
+.progress-label{font-size:.72rem;color:var(--muted);margin-bottom:5px}
+.progress-bar-wrap{background:var(--border);border-radius:99px;height:5px;width:80px}
+.progress-bar-fill{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--primary-light));transition:width .5s ease}
+
+/* ── GRAPH ── */
+.graph-area{padding:18px 22px;border-bottom:1px solid var(--border);background:#fafbff}
+.chart-wrap{position:relative;height:290px;width:100%}
+#image-display{display:none;width:100%;max-height:310px;object-fit:contain;border-radius:10px}
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2.5px dashed var(--primary-light);border-radius:14px;padding:36px 20px;cursor:pointer;background:#f5f3ff;transition:background .2s}
+.upload-zone:hover,.upload-zone.dragover{background:#ede9fe}
+.upload-zone .upload-icon{font-size:2.2rem;margin-bottom:8px}
+.upload-zone p{color:var(--muted);font-size:.85rem}
+.upload-zone input{display:none}
+
+/* ── QUESTION ── */
+.question-box{padding:16px 22px;border-bottom:1px solid var(--border)}
+.question-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--primary);margin-bottom:7px}
+.question-text{font-size:1rem;font-weight:600;color:var(--text);line-height:1.5}
+.consigne-text{font-size:.8rem;color:var(--muted);margin-top:7px;padding:7px 11px;background:#f0f4ff;border-radius:8px;border-left:3px solid var(--primary-light)}
+
+/* ── HINTS ── */
+.hints-section{padding:10px 22px 14px;border-bottom:1px solid var(--border);background:#fffbf0}
+.hints-header{display:flex;align-items:center;justify-content:space-between}
+.hints-title{font-size:.75rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px}
+.btn-hint{background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-hint:hover{background:#fde68a}
+.btn-hint:disabled{opacity:.45;cursor:default}
+.hint-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.hint-item{display:flex;align-items:flex-start;gap:8px;font-size:.85rem;color:#78350f;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.hint-num{background:#f59e0b;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* ── ANSWER ── */
+.answer-area{padding:16px 22px 18px}
+.answer-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.char-count{font-weight:400;font-size:.7rem}
+textarea{width:100%;min-height:110px;border:2px solid var(--border);border-radius:12px;padding:12px 14px;font-size:.92rem;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color .2s,box-shadow .2s;line-height:1.6}
+textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+textarea.improved-filled{border-color:var(--facile);background:#f0fdf4}
+
+/* ── CUSTOM Q ── */
+.custom-question-box{padding:14px 22px;border-bottom:1px solid var(--border);display:none}
+.custom-question-box.visible{display:block}
+.custom-question-box label{font-size:.76rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.custom-question-box input,.custom-question-box textarea{min-height:unset;border:2px solid var(--border);border-radius:9px;padding:8px 12px;font-size:.88rem;font-family:inherit;width:100%;outline:none;margin-bottom:9px;transition:border-color .2s}
+.custom-question-box input:focus,.custom-question-box textarea:focus{border-color:var(--primary)}
+
+/* ── ACTION BAR ── */
+.action-bar{display:flex;gap:10px;justify-content:flex-end;align-items:center;padding:0 22px 20px;flex-wrap:wrap}
+.iteration-badge{font-size:.75rem;color:var(--muted);background:var(--bg);border-radius:99px;padding:4px 11px;border:1px solid var(--border)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;font-size:.88rem;font-weight:600;cursor:pointer;border:none;transition:all .22s}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#7c3aed);color:#fff;box-shadow:0 4px 14px rgba(79,70,229,.4)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,70,229,.5)}
+.btn-secondary{background:var(--bg);color:var(--primary);border:2px solid var(--primary-light)}
+.btn-secondary:hover:not(:disabled){background:#ede9fe}
+.btn-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.4)}
+.btn-success:hover:not(:disabled){transform:translateY(-1px)}
+.spinner{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── FEEDBACK ── */
+#feedback-panel{display:none;animation:slideDown .4s ease}
+#feedback-panel.visible{display:block}
+@keyframes slideDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+.score-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.score-circle{width:105px;height:105px;flex-shrink:0}
+.score-text-wrap{flex:1;min-width:160px}
+.niveau-badge{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 11px;border-radius:99px;margin-bottom:7px}
+.score-explication{font-size:.87rem;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.encouragement{font-size:.88rem;font-weight:600;color:var(--primary-dark);font-style:italic}
+.feedback-details{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.feedback-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.feedback-section:last-child{border-bottom:none}
+.feedback-section-title{font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+.point-positive{color:#059669}.point-warn{color:#d97706}
+.point-list{list-style:none}
+.point-list li{display:flex;gap:8px;font-size:.87rem;color:var(--text);line-height:1.5;margin-bottom:5px}
+.point-list li:last-child{margin-bottom:0}
+.point-icon{flex-shrink:0}
+.improved-card{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;border-radius:var(--radius);padding:18px 22px;margin-bottom:16px}
+.improved-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#059669;margin-bottom:9px}
+.improved-text{font-size:.92rem;color:var(--text);line-height:1.65;background:#fff;border-radius:10px;padding:12px 14px;border:1px solid #bbf7d0;margin-bottom:12px;font-style:italic}
+.improved-actions{display:flex;gap:9px;flex-wrap:wrap}
+.next-banner{background:linear-gradient(135deg,var(--primary),#7c3aed);color:#fff;border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.next-banner strong{font-size:1rem;display:block}
+.next-banner p{font-size:.85rem;opacity:.9}
+.btn-next{background:#fff;color:var(--primary);border:none;border-radius:11px;padding:10px 20px;font-size:.88rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s}
+.btn-next:hover{transform:scale(1.04)}
+.error-toast{background:#fee2e2;border:1.5px solid #fca5a5;color:#991b1b;border-radius:10px;padding:11px 14px;font-size:.85rem;margin:0 0 14px;display:none;animation:slideDown .3s ease}
+.error-toast.visible{display:block}
+
+@media(max-width:600px){
+  .app-header h1{font-size:1rem}
+  .container{padding:14px 10px}
+  .verb-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="app-header">
+  <div>
+    <h1>📊 Analyse de Graphiques</h1>
+    <p>Entraînement à l'analyse de documents scientifiques</p>
+  </div>
+  <div class="hdr-btns">
+    <button class="btn-hdr" onclick="openMethod()">📚 Méthode</button>
+    <button class="btn-hdr round" onclick="toggleSettings()" title="Paramètres API">⚙️</button>
+  </div>
+</header>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="settings-panel">
+  <label for="api-key-input">🔑 Clé API Anthropic (Claude)</label>
+  <div class="api-row">
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off">
+    <button class="btn-save-api" onclick="saveApiKey()">Enregistrer</button>
+  </div>
+  <div class="api-status" id="api-status"></div>
+</div>
+
+<!-- ═══ MODAL MÉTHODE ═══ -->
+<div class="modal-overlay" id="method-modal" onclick="closeMethodIfBg(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>📋 Méthode d'analyse d'un graphique</h2>
+      <button class="btn-close-modal" onclick="closeMethod()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="method-section">
+        <h3>① Lire les axes avant tout</h3>
+        <ul>
+          <li>Identifiez ce que représente chaque axe et ses <strong>unités</strong></li>
+          <li>Repérez les valeurs minimales et maximales de l'échelle</li>
+          <li>Notez le titre du graphique : il vous dit ce qui est mesuré</li>
+        </ul>
+      </div>
+
+      <div class="method-section">
+        <h3>② Repérer les valeurs clés</h3>
+        <ul>
+          <li>La valeur au <strong>départ</strong> (t=0 ou valeur initiale)</li>
+          <li>Le <strong>maximum</strong> et/ou le <strong>minimum</strong> de la courbe</li>
+          <li>La valeur <strong>finale</strong> (en fin de graphique)</li>
+          <li>Les <strong>points de rupture</strong> où la tendance change</li>
+        </ul>
+      </div>
+
+      <div class="method-section">
+        <h3>③ Verbes pour décrire les tendances</h3>
+        <div class="verb-grid">
+          <div class="verb-card">
+            <div class="vt up">↑ Augmentation</div>
+            <p>augmente · croît · s'élève · monte · passe de X à Y</p>
+          </div>
+          <div class="verb-card">
+            <div class="vt down">↓ Diminution</div>
+            <p>diminue · décroît · baisse · chute · passe de X à Y</p>
+          </div>
+          <div class="verb-card">
+            <div class="vt stable">→ Stabilisation</div>
+            <p>reste stable · se maintient · est constant · atteint un plateau</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="method-section">
+        <h3>④ Structure d'une bonne phrase</h3>
+        <div class="method-box">
+          <p><strong>[Variable Y]</strong> <em>[verbe de tendance]</em> de <strong>[valeur 1 + unité]</strong> à <strong>[valeur 2 + unité]</strong> lorsque <strong>[variable X]</strong> passe de <strong>[x1]</strong> à <strong>[x2 + unité]</strong>.</p>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">Si la courbe a plusieurs phases, décrivez chacune séparément.</p>
+      </div>
+
+      <div class="method-section">
+        <h3>✅ Exemple de réponse parfaite</h3>
+        <div class="method-box green">
+          <p class="method-example">« La glycémie augmente rapidement de <strong>0,80 g/L</strong> à <strong>1,40 g/L</strong> entre t = 0 et t = 30 minutes après le repas. Elle diminue ensuite progressivement et retrouve sa valeur initiale de <strong>0,80 g/L</strong> à t = 180 minutes. »</p>
+        </div>
+      </div>
+
+      <div class="method-section">
+        <h3>❌ Erreurs fréquentes à éviter</h3>
+        <div class="method-box red">
+          <ul>
+            <li>Oublier les unités : <em>"monte à 1,4"</em> ✗ → <em>"monte à 1,4 g/L"</em> ✓</li>
+            <li>Être trop vague : <em>"ça monte puis ça descend"</em> ✗</li>
+            <li>Ne pas citer de valeurs numériques ✗</li>
+            <li>Oublier une phase de la courbe ✗</li>
+            <li>Confondre les axes (lire X à la place de Y) ✗</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="method-section">
+        <h3>💡 Pour les graphiques à 2 courbes</h3>
+        <ul>
+          <li>Décrivez d'abord chaque courbe séparément</li>
+          <li>Puis <strong>comparez</strong> : même tendance ? Valeurs plus élevées ? Optimum différent ?</li>
+          <li>Proposez une interprétation biologique si demandé</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="container">
+  <div class="nav-levels" id="nav-levels"></div>
+  <div class="error-toast" id="error-toast"></div>
+
+  <!-- Exercise card -->
+  <div class="card" id="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-meta">
+        <h2 id="ex-titre">—</h2>
+        <div class="badges" id="ex-badges"></div>
+        <div class="source-text" id="ex-source"></div>
+      </div>
+      <div class="ex-progress">
+        <div class="progress-label" id="ex-progress-label">1 / 31</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="ex-progress-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="graph-area" id="graph-area">
+      <div class="chart-wrap" id="chart-wrap"><canvas id="chart-canvas"></canvas></div>
+      <img id="image-display" alt="Graphique chargé">
+      <div class="upload-zone" id="upload-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="upload-icon">📁</div>
+        <p><strong>Glissez un graphique ici</strong> ou cliquez pour choisir</p>
+        <p style="margin-top:3px;font-size:.74rem">PNG, JPG, SVG acceptés</p>
+        <input type="file" id="file-input" accept="image/*" onchange="handleFileInput(event)">
+      </div>
+    </div>
+
+    <div class="custom-question-box" id="custom-q-box">
+      <label>Question à poser aux élèves</label>
+      <input type="text" id="custom-question" placeholder="Ex : Décrivez l'évolution de la courbe…">
+      <label>Contexte pour l'IA (valeurs du graphique, tendances…)</label>
+      <textarea id="custom-context" rows="3" placeholder="Ex : Le graphique montre l'évolution de… Les valeurs sont…"></textarea>
+    </div>
+
+    <div class="question-box" id="question-box">
+      <div class="question-label">❓ Question</div>
+      <div class="question-text" id="ex-question">—</div>
+      <div class="consigne-text" id="ex-consigne"></div>
+    </div>
+
+    <!-- Indices -->
+    <div class="hints-section" id="hints-section" style="display:none">
+      <div class="hints-header">
+        <span class="hints-title">💡 Indices disponibles</span>
+        <button class="btn-hint" id="btn-hint" onclick="showNextHint()">Voir un indice</button>
+      </div>
+      <div class="hint-list" id="hint-list"></div>
+    </div>
+
+    <div class="answer-area">
+      <div class="answer-label">
+        ✏️ Votre analyse
+        <span class="char-count" id="char-count">0 caractère</span>
+      </div>
+      <textarea id="student-answer"
+        placeholder="Rédigez ici votre analyse en vous appuyant sur les valeurs du graphique…"
+        oninput="onAnswerInput()"></textarea>
+    </div>
+
+    <div class="action-bar">
+      <span class="iteration-badge" id="iteration-badge" style="display:none">Tentative 1</span>
+      <button class="btn btn-primary" id="btn-validate" onclick="submitAnswer()">✅ Valider ma réponse</button>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div id="feedback-panel">
+    <div class="score-card">
+      <svg class="score-circle" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+        <circle id="score-arc" cx="60" cy="60" r="50" fill="none" stroke="#4f46e5" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="0 314" transform="rotate(-90 60 60)"
+                style="transition:stroke-dasharray 1.2s ease"/>
+        <text id="score-num" x="60" y="65" text-anchor="middle" font-size="26" font-weight="800" fill="#1e293b">—</text>
+      </svg>
+      <div class="score-text-wrap">
+        <span class="niveau-badge" id="niveau-badge">—</span>
+        <div class="score-explication" id="score-explication"></div>
+        <div class="encouragement" id="score-encouragement"></div>
+      </div>
+    </div>
+    <div class="feedback-details">
+      <div class="feedback-section">
+        <div class="feedback-section-title point-positive">✅ Points positifs</div>
+        <ul class="point-list" id="points-positifs"></ul>
+      </div>
+      <div class="feedback-section">
+        <div class="feedback-section-title point-warn">⚠️ Points à améliorer</div>
+        <ul class="point-list" id="points-ameliorer"></ul>
+      </div>
+    </div>
+    <div class="improved-card">
+      <div class="improved-label">💡 Proposition de phrase améliorée</div>
+      <div class="improved-text" id="improved-phrase-text"></div>
+      <div class="improved-actions">
+        <button class="btn btn-secondary" onclick="useImprovedPhrase()">✏️ Améliorer encore</button>
+        <button class="btn btn-success" onclick="validateImproved()">✅ Valider cette phrase</button>
+      </div>
+    </div>
+    <div class="next-banner" id="next-banner" style="display:none">
+      <div>
+        <strong>🎉 Bel exercice !</strong>
+        <p>Passez à l'exercice suivant ou retravaillez votre phrase.</p>
+      </div>
+      <button class="btn-next" onclick="nextExercise()">Exercice suivant →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   HELPERS — CRÉATION DE CONFIGS CHART.JS
+══════════════════════════════════════════════════ */
+function LC(title, xLabel, yLabel, labels, datasets, yMin, yMax) {
+  return {
+    type:'line',
+    data:{
+      labels: labels.map(String),
+      datasets: datasets.map(d=>({
+        label:d[0], data:d[1],
+        borderColor:d[2], backgroundColor:d[2]+'22',
+        borderWidth:2.5, pointRadius:5, tension:0.35,
+        fill: datasets.length===1, pointBackgroundColor:d[2]
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        title:{display:true,text:title,font:{size:13,weight:'bold'},padding:{bottom:12}},
+        legend:{position:'top'}
+      },
+      scales:{
+        x:{title:{display:true,text:xLabel,font:{size:11}},grid:{color:'#f1f5f9'}},
+        y:{title:{display:true,text:yLabel,font:{size:11}},min:yMin,max:yMax,grid:{color:'#f1f5f9'}}
+      }
+    }
+  };
+}
+function BC(title, xLabel, yLabel, labels, datasets, yMin, yMax) {
+  return {
+    type:'bar',
+    data:{
+      labels,
+      datasets: datasets.map(d=>({
+        label:d[0], data:d[1],
+        backgroundColor:d[2]+'cc', borderRadius:6, borderWidth:0
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        title:{display:true,text:title,font:{size:13,weight:'bold'},padding:{bottom:12}},
+        legend:{position:'top'}
+      },
+      scales:{
+        x:{title:{display:true,text:xLabel,font:{size:11}},grid:{color:'#f1f5f9'}},
+        y:{title:{display:true,text:yLabel,font:{size:11}},min:yMin,max:yMax,grid:{color:'#f1f5f9'}}
+      }
+    }
+  };
+}
+
+/* ══════════════════════════════════════════════════
+   30 EXERCICES
+══════════════════════════════════════════════════ */
+const EXERCISES = [
+
+/* ── FACILE 1-8 ─────────────────────────────── */
+{
+  id:1,matiere:'SVT',classe:'4ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Régulation de la glycémie',
+  source:"D'après annales Brevet – Académie de Lyon",
+  question:"Décrivez l'évolution de la glycémie en fonction du temps après un repas riche en glucides.",
+  consigne:"Citez les valeurs précises avec leurs unités et décrivez chaque phase.",
+  indices:[
+    "Lisez la valeur de glycémie à t = 0 min (avant le repas) et à t = 30 min : quelle est la différence ?",
+    "Identifiez le moment où la courbe atteint son maximum, puis décrivez ce qui se passe ensuite.",
+    "Comparez la valeur finale (t = 180 min) avec la valeur initiale (t = 0). Que remarquez-vous ?"
+  ],
+  chartConfig: LC(
+    "Évolution de la glycémie après un repas",
+    "Temps (min)", "Glycémie (g/L)",
+    [0,30,60,90,120,150,180],
+    [["Glycémie",[0.80,1.40,1.30,1.10,0.95,0.85,0.80],'#4f46e5']],
+    0, 1.8
+  ),
+  aiContext:`Graphique : Évolution de la glycémie après un repas
+Axe X : Temps (min) — 0, 30, 60, 90, 120, 150, 180
+Axe Y : Glycémie (g/L) — 0 à 1,8
+Valeurs : t=0→0,80 ; t=30→1,40 (max) ; t=60→1,30 ; t=90→1,10 ; t=120→0,95 ; t=150→0,85 ; t=180→0,80
+Phases : 1) augmentation rapide 0→30 min (+0,60 g/L) ; 2) diminution progressive 30→180 min, retour à 0,80 g/L`
+},
+
+{
+  id:2,matiere:'SVT',classe:'5ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Température corporelle au cours d\'une journée',
+  source:"D'après manuel Belin 5ème",
+  question:"Décrivez les variations de la température corporelle d'un individu sain au cours de la journée.",
+  consigne:"Relevez les valeurs minimale et maximale, et décrivez l'évolution générale.",
+  indices:[
+    "À quelle heure la température est-elle la plus basse ? La plus haute ?",
+    "Quelle est la différence entre le minimum et le maximum ? (en °C)",
+    "La variation est-elle importante ou faible ? Décrivez la tendance générale."
+  ],
+  chartConfig: LC(
+    "Température corporelle au cours de la journée",
+    "Heure", "Température corporelle (°C)",
+    [6,8,10,12,14,16,18,20,22],
+    [["Température",[36.2,36.4,36.7,36.9,37.1,37.2,37.0,36.8,36.4],'#f97316']],
+    35.5, 37.8
+  ),
+  aiContext:`Graphique : Température corporelle d'un individu sain sur une journée
+Axe X : Heure (de 6h à 22h)
+Axe Y : Température (°C) — 35,5 à 37,8
+Valeurs : 6h→36,2 ; 8h→36,4 ; 10h→36,7 ; 12h→36,9 ; 14h→37,1 ; 16h→37,2 (max) ; 18h→37,0 ; 20h→36,8 ; 22h→36,4 (min)
+Tendance : légère hausse le matin, plateau en fin d'après-midi (37,0-37,2°C), légère baisse le soir. Variation totale : 1°C seulement.`
+},
+
+{
+  id:3,matiere:'SVT',classe:'6ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Croissance d\'un enfant de 0 à 16 ans',
+  source:"D'après carnet de santé – OMS",
+  question:"Décrivez l'évolution de la taille d'un garçon entre 0 et 16 ans.",
+  consigne:"La croissance est-elle constante ? Identifiez une période de croissance plus rapide.",
+  indices:[
+    "Calculez la croissance entre 0 et 4 ans, puis entre 4 et 10 ans. Laquelle est la plus forte ?",
+    "Repérez entre quelles années la courbe est la plus pentue (augmentation la plus rapide).",
+    "Donnez la taille à la naissance, à 10 ans et à 16 ans avec les unités."
+  ],
+  chartConfig: LC(
+    "Évolution de la taille d'un garçon",
+    "Âge (années)", "Taille (cm)",
+    [0,2,4,6,8,10,12,14,16],
+    [["Taille",[50,87,103,118,130,140,153,168,176],'#10b981']],
+    0, 200
+  ),
+  aiContext:`Graphique : Évolution de la taille d'un garçon de 0 à 16 ans
+Axe X : Âge (années)
+Axe Y : Taille (cm)
+Valeurs : 0→50cm ; 2→87cm ; 4→103cm ; 6→118cm ; 8→130cm ; 10→140cm ; 12→153cm ; 14→168cm ; 16→176cm
+Phases : forte croissance 0-4 ans (+53 cm) ; croissance ralentie 4-12 ans (+50 cm en 8 ans) ; accélération pubertaire 12-16 ans (+23 cm, pic de croissance)`
+},
+
+{
+  id:4,matiere:'SVT',classe:'5ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Fréquence respiratoire selon l\'activité physique',
+  source:"D'après exercices SVT 5ème – Hatier",
+  question:"Comparez la fréquence respiratoire selon le niveau d'activité physique.",
+  consigne:"Décrivez l'évolution de la fréquence respiratoire du repos jusqu'au sprint.",
+  indices:[
+    "Lisez la valeur pour 'Repos' et pour 'Sprint'. Quelle est la différence ?",
+    "La fréquence augmente-t-elle de façon régulière entre chaque activité ?",
+    "Multipliez la valeur du sprint par combien par rapport au repos ?"
+  ],
+  chartConfig: BC(
+    "Fréquence respiratoire selon l'activité",
+    "Type d'activité", "Fréquence respiratoire (mouvements/min)",
+    ['Repos','Marche','Course légère','Sprint'],
+    [["Fréquence respiratoire",[14,20,32,46],'#0ea5e9']],
+    0, 60
+  ),
+  aiContext:`Graphique : Fréquence respiratoire selon l'activité physique (histogramme)
+Axe X : Type d'activité (Repos, Marche, Course légère, Sprint)
+Axe Y : Fréquence respiratoire (mouvements/min)
+Valeurs : Repos→14 ; Marche→20 ; Course légère→32 ; Sprint→46
+Tendance : augmentation progressive et régulière de repos (+6) à marche (+12) à course (+14) à sprint. La valeur triplée entre repos et sprint.`
+},
+
+{
+  id:5,matiere:'SVT',classe:'6ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Croissance d\'une plante avec et sans lumière',
+  source:"D'après TP SVT 6ème – Nathan",
+  question:"Comparez la croissance de deux plants de haricots : l'un placé à la lumière, l'autre dans l'obscurité.",
+  consigne:"Décrivez séparément l'évolution de chaque courbe, puis comparez-les.",
+  indices:[
+    "À la semaine 1, les deux plants ont la même taille. Que se passe-t-il ensuite ?",
+    "À la semaine 6, quelle est la différence de taille entre les deux plants ?",
+    "Décrivez la forme de chaque courbe : croissance régulière ? plateau ?"
+  ],
+  chartConfig: LC(
+    "Croissance d'un plant de haricot (lumière vs obscurité)",
+    "Semaines", "Hauteur (cm)",
+    [1,2,3,4,5,6],
+    [
+      ["Avec lumière",[2,5,10,16,23,30],'#10b981'],
+      ["Sans lumière",[2,4,6,8,9,9],'#94a3b8']
+    ],
+    0, 35
+  ),
+  aiContext:`Graphique : Hauteur de plants de haricot selon présence ou absence de lumière
+Axe X : Semaines (1 à 6)
+Axe Y : Hauteur (cm)
+Courbe 1 (avec lumière) : 2→5→10→16→23→30 cm. Croissance régulière et soutenue.
+Courbe 2 (sans lumière) : 2→4→6→8→9→9 cm. Croissance ralentie puis plateau à 9 cm.
+À sem 6 : 30 cm avec lumière vs 9 cm sans lumière (différence de 21 cm). La lumière est indispensable à une croissance normale.`
+},
+
+{
+  id:6,matiere:'SVT',classe:'5ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Consommation d\'O₂ pendant un effort physique',
+  source:"D'après annales DNB – Académie de Rennes",
+  question:"Décrivez l'évolution de la consommation d'oxygène avant, pendant et après un effort physique.",
+  consigne:"Identifiez les trois phases (repos, effort, récupération) et donnez les valeurs correspondantes.",
+  indices:[
+    "Le graphique montre 3 phases : repos (0-5 min), effort (5-20 min), récupération (20-25 min). Donnez la consommation d'O₂ à chaque phase.",
+    "Quelle est la valeur maximale de consommation d'O₂ pendant l'effort ?",
+    "La consommation revient-elle à la valeur de départ après l'effort ?"
+  ],
+  chartConfig: LC(
+    "Consommation d'O₂ au cours d'un effort physique",
+    "Temps (min)", "Consommation d'O₂ (L/min)",
+    [0,5,10,15,20,25],
+    [["Conso O₂",[0.25,1.20,1.80,2.10,2.20,0.28],'#7c3aed']],
+    0, 2.8
+  ),
+  aiContext:`Graphique : Consommation d'O₂ selon le temps pendant un effort
+Axe X : Temps (min) — 0 à 25 min
+Axe Y : Consommation d'O₂ (L/min)
+Valeurs : t=0→0,25 ; t=5→1,20 ; t=10→1,80 ; t=15→2,10 ; t=20→2,20 (max, fin effort) ; t=25→0,28
+Phases : repos (0-5min) : 0,25 L/min ; effort (5-20min) : montée jusqu'à 2,20 L/min ; récupération (20-25min) : chute rapide vers 0,28 L/min`
+},
+
+{
+  id:7,matiere:'SVT',classe:'3ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Évolution d\'une population de lapins',
+  source:"D'après manuel Bordas 3ème",
+  question:"Décrivez l'évolution de la population de lapins dans un enclos au cours du temps.",
+  consigne:"Repérez les différentes phases de la courbe de croissance et citez les valeurs.",
+  indices:[
+    "La courbe a-t-elle toujours la même forme ? Distinguez une phase de croissance rapide et une phase de stabilisation.",
+    "Quelle est la population de départ (mois 0) ? Quelle valeur maximale est atteinte ?",
+    "À partir de quel moment la population ne croît plus guère ?"
+  ],
+  chartConfig: LC(
+    "Évolution de la population de lapins dans un enclos",
+    "Temps (mois)", "Nombre d'individus",
+    [0,2,4,6,8,10,12,14,16,18,20],
+    [["Population",[10,26,58,115,188,248,278,294,300,302,300],'#f59e0b']],
+    0, 360
+  ),
+  aiContext:`Graphique : Évolution d'une population de lapins dans un espace limité
+Axe X : Temps (mois) — 0 à 20
+Axe Y : Nombre d'individus
+Valeurs : 0→10 ; 2→26 ; 4→58 ; 6→115 ; 8→188 ; 10→248 ; 12→278 ; 14→294 ; 16→300 ; 18→302 ; 20→300
+Phases : Phase exponentielle (0-10 mois) : croissance rapide de 10 à 248 individus ; Phase de ralentissement (10-16 mois) ; Phase de plateau (~300 individus à partir de 16 mois). Capacité limite de l'enclos ≈ 300 individus.`
+},
+
+{
+  id:8,matiere:'SVT',classe:'4ème',niveau:'facile',niveauLabel:'Facile',
+  titre:'Température de l\'eau selon la profondeur',
+  source:"D'après mesures lac Léman – cours SVT 4ème",
+  question:"Décrivez la variation de la température de l'eau en fonction de la profondeur dans un lac en été.",
+  consigne:"Relevez les valeurs à la surface et en profondeur. Identifiez la zone de transition rapide.",
+  indices:[
+    "Quelle est la température à la surface (0 m) ? Et à 20 m de profondeur ?",
+    "Entre quelles profondeurs la température chute-t-elle le plus rapidement ?",
+    "La température continue-t-elle à baisser au-delà de 15 m ?"
+  ],
+  chartConfig: LC(
+    "Température de l'eau en fonction de la profondeur (été)",
+    "Profondeur (m)", "Température (°C)",
+    [0,2,4,6,8,10,12,15,20],
+    [["Température",[23,22,21,19,14,9,7,6,5],'#0ea5e9']],
+    0, 28
+  ),
+  aiContext:`Graphique : Température de l'eau d'un lac selon la profondeur en été
+Axe X : Profondeur (m) — 0 à 20 m
+Axe Y : Température (°C)
+Valeurs : 0m→23°C ; 2m→22°C ; 4m→21°C ; 6m→19°C ; 8m→14°C ; 10m→9°C ; 12m→7°C ; 15m→6°C ; 20m→5°C
+Phases : épilimnion (0-4m) : léger refroidissement de 23 à 21°C ; thermocline (4-10m) : chute rapide de 21 à 9°C (-12°C en 6m) ; hypolimnion (10-20m) : température stable autour de 5-7°C.`
+},
+
+/* ── INTERMÉDIAIRE 9-18 ─────────────────────── */
+{
+  id:9,matiere:'SVT',classe:'4ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Fréquence cardiaque à l\'effort',
+  source:"D'après annales DNB – Académie de Bordeaux",
+  question:"Décrivez l'évolution de la fréquence cardiaque pendant l'effort physique et la récupération. Distinguez les deux phases.",
+  consigne:"L'exercice comporte deux phases distinctes. Identifiez-les et donnez les valeurs précises pour chacune.",
+  indices:[],
+  chartConfig: LC(
+    "Fréquence cardiaque pendant l'effort et la récupération",
+    "Temps (min)", "Fréquence cardiaque (bpm)",
+    [0,5,10,15,20,25,30,35],
+    [["FC",[65,128,145,155,158,112,82,67],'#ef4444']],
+    0, 200
+  ),
+  aiContext:`Graphique : Fréquence cardiaque pendant un effort physique
+Axe X : Temps (min) — 0 à 35 min
+Axe Y : FC (bpm)
+Valeurs : t=0→65 (repos) ; t=5→128 ; t=10→145 ; t=15→155 ; t=20→158 (max, fin effort) ; t=25→112 ; t=30→82 ; t=35→67
+Phase 1 effort (0-20 min) : augmentation de 65 à 158 bpm (+93 bpm)
+Phase 2 récupération (20-35 min) : diminution rapide de 158 à 67 bpm (-91 bpm en 15 min)`
+},
+
+{
+  id:10,matiere:'SVT',classe:'3ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Photosynthèse et intensité lumineuse',
+  source:"D'après annales DNB – Académie de Paris",
+  question:"Analysez la relation entre l'intensité lumineuse et le dégagement net d'oxygène. Identifiez les différentes phases et le point de compensation.",
+  consigne:"Attention : certaines valeurs sont négatives. Expliquez leur signification biologique.",
+  indices:[],
+  chartConfig: LC(
+    "Dégagement d'O₂ en fonction de l'intensité lumineuse",
+    "Intensité lumineuse (klux)", "Dégagement net O₂ (µL/h/g MF)",
+    [0,5,10,20,40,80,160],
+    [["Dégagement O₂",[-3.0,-1.2,0,4.0,8.0,10.5,11.0],'#10b981']],
+    -5, 14
+  ),
+  aiContext:`Graphique : Dégagement net d'O₂ selon l'intensité lumineuse
+Axe X : Intensité lumineuse (klux)
+Axe Y : Dégagement net O₂ (µL/h/g MF)
+Valeurs : 0→-3,0 ; 5→-1,2 ; 10→0 (point compensation) ; 20→+4,0 ; 40→+8,0 ; 80→+10,5 ; 160→+11,0 (saturation)
+Phases : 0-10 klux : bilan négatif (respiration > photosynthèse) ; point compensation = 10 klux ; 10-80 klux : augmentation ; 80-160 klux : plateau de saturation ≈ 11 µL/h/g`
+},
+
+{
+  id:11,matiere:'SVT',classe:'3ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Activité enzymatique selon le pH (pepsine)',
+  source:"D'après annales Brevet – Académie de Nantes",
+  question:"Décrivez l'évolution de l'activité de la pepsine en fonction du pH. Précisez l'optimum de pH.",
+  consigne:"Identifiez le pH optimal, les valeurs de l'activité à l'optimum, et décrivez ce qui se passe lorsque l'on s'en éloigne.",
+  indices:[],
+  chartConfig: LC(
+    "Activité de la pepsine selon le pH",
+    "pH", "Activité enzymatique (unités relatives)",
+    [1,2,3,4,5,6,7,8],
+    [["Activité pepsine",[2,8,18,12,5,2,1,0],'#f97316']],
+    0, 24
+  ),
+  aiContext:`Graphique : Activité de la pepsine en fonction du pH
+Axe X : pH (1 à 8)
+Axe Y : Activité enzymatique (unités relatives)
+Valeurs : pH1→2 ; pH2→8 ; pH3→18 (maximum) ; pH4→12 ; pH5→5 ; pH6→2 ; pH7→1 ; pH8→0
+Optimum : pH 3. L'activité augmente de pH1 à pH3, puis diminue progressivement jusqu'à s'annuler à pH8.`
+},
+
+{
+  id:12,matiere:'SVT',classe:'4ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Volume pulmonaire au repos et à l\'effort',
+  source:"D'après spirométrie – manuel SVT 4ème Bordas",
+  question:"Comparez les volumes pulmonaires d'un individu au repos et à l'effort. Que peut-on conclure ?",
+  consigne:"Comparez les deux situations pour chaque type de volume. Calculez le volume total mobilisé dans chaque cas.",
+  indices:[],
+  chartConfig: BC(
+    "Volumes pulmonaires au repos et à l'effort",
+    "Type de volume", "Volume (L)",
+    ['Volume courant','Volume expiratoire de réserve','Volume inspiratoire de réserve'],
+    [
+      ["Au repos",[0.5,1.5,2.5],'#4f46e5'],
+      ["À l'effort",[2.0,0.5,1.0],'#ef4444']
+    ],
+    0, 3.5
+  ),
+  aiContext:`Graphique : Comparaison des volumes pulmonaires au repos vs à l'effort (histogramme groupé)
+Axe X : Type de volume (Volume courant, Volume expiratoire de réserve, Volume inspiratoire de réserve)
+Axe Y : Volume (L)
+Au repos : courant=0,5L ; expiratoire réserve=1,5L ; inspiratoire réserve=2,5L → total mobilisable = 4,5L
+À l'effort : courant=2,0L ; expiratoire réserve=0,5L ; inspiratoire réserve=1,0L → le volume courant est multiplié par 4
+Conclusion : à l'effort, le volume courant augmente fortement (×4) en utilisant les réserves.`
+},
+
+{
+  id:13,matiere:'SVT',classe:'4ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Pression artérielle systolique et diastolique',
+  source:"D'après mesures holter tensionnel – cours SVT",
+  question:"Décrivez l'évolution des deux valeurs de pression artérielle au cours de la journée.",
+  consigne:"Décrivez chaque courbe séparément, puis comparez l'évolution des deux valeurs.",
+  indices:[],
+  chartConfig: LC(
+    "Pression artérielle au cours de la journée",
+    "Heure", "Pression artérielle (mmHg)",
+    [6,8,10,12,14,16,18,20,22],
+    [
+      ["Systolique",[115,125,132,130,128,130,128,120,112],'#ef4444'],
+      ["Diastolique",[72,80,85,83,80,82,80,75,68],'#4f46e5']
+    ],
+    50, 160
+  ),
+  aiContext:`Graphique : Pression artérielle systolique et diastolique sur une journée
+Axe X : Heure (6h à 22h)
+Axe Y : Pression (mmHg)
+Systolique : 6h→115 ; 8h→125 ; 10h→132 (max) ; plateau 128-132 jusqu'à 18h ; 20h→120 ; 22h→112
+Diastolique : 6h→72 ; 8h→80 ; 10h→85 (max) ; plateau 80-85 ; 20h→75 ; 22h→68
+Les deux courbes suivent la même tendance : hausse le matin, plateau la journée, baisse le soir. Systolique toujours supérieure de ~45-50 mmHg à la diastolique.`
+},
+
+{
+  id:14,matiere:'SVT',classe:'3ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Croissance bactérienne (4 phases)',
+  source:"D'après TP microbiologie – lycée",
+  question:"Décrivez les différentes phases de croissance d'une culture bactérienne. Nommez chaque phase si possible.",
+  consigne:"Identifiez et nommez les 4 phases successives en vous appuyant sur les valeurs.",
+  indices:[],
+  chartConfig: LC(
+    "Courbe de croissance d'une culture bactérienne",
+    "Temps (h)", "Nombre de bactéries (×10³ UFC/mL)",
+    [0,1,2,3,4,5,6,7,8,9,10,12,14,16],
+    [["Population bactérienne",[0.1,0.11,0.13,0.2,0.4,0.8,1.6,3.2,6.0,6.4,6.5,5.0,3.0,1.0],'#7c3aed']],
+    0, 8
+  ),
+  aiContext:`Graphique : Croissance bactérienne en culture
+Axe X : Temps (h) — 0 à 16h
+Axe Y : Nombre bactéries (×10³ UFC/mL)
+Valeurs : 0h→0,1 ; 2h→0,13 ; 3h→0,2 ; 5h→0,8 ; 7h→3,2 ; 9h→6,4 ; 10h→6,5 (max)
+4 phases : Phase de latence (0-2h) : pas de multiplication, ~0,1×10³ ; Phase exponentielle (2-8h) : doublement rapide de 0,13 à 6,0×10³ ; Phase stationnaire (8-10h) : plateau ~6,5×10³ ; Phase de déclin (10-16h) : diminution de 6,5 à 1,0×10³`
+},
+
+{
+  id:15,matiere:'SVT',classe:'3ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Relation proie-prédateur (lapin / renard)',
+  source:"D'après données écologiques – Académie de Lyon",
+  question:"Analysez les variations des populations de lapins et de renards au cours du temps. Quelle relation existe-t-il entre ces deux populations ?",
+  consigne:"Décrivez l'évolution de chaque population, puis mettez en évidence le décalage temporel entre les deux courbes.",
+  indices:[],
+  chartConfig: LC(
+    "Évolution des populations proie-prédateur",
+    "Années", "Population (×10 individus pour lapins / individus pour renards)",
+    [0,1,2,3,4,5,6,7,8,9,10],
+    [
+      ["Lapins (×10)",[100,130,165,195,165,120,100,125,155,185,160],'#10b981'],
+      ["Renards",[20,22,28,40,48,44,32,24,22,30,42],'#ef4444']
+    ],
+    0, 230
+  ),
+  aiContext:`Graphique : Populations proie (lapins) et prédateur (renards) sur 10 ans
+Axe X : Années (0-10)
+Axe Y : Lapins (×10 individus) et Renards (individus)
+Lapins (×10) : 100→195 (max an 3) → déclin à 100 (an 6) → remontée à 185 (an 9)
+Renards : 20→48 (max an 4) → déclin à 22 (an 8) → remontée à 42 (an 10)
+Relation : cycles couplés avec décalage d'environ 1 an. Quand lapins augmentent → renards augmentent après. Quand lapins chutent → renards chutent après.`
+},
+
+{
+  id:16,matiere:'SVT',classe:'3ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'CO₂ atmosphérique de 1960 à 2020',
+  source:"D'après données NOAA – station Mauna Loa (Hawaï)",
+  question:"Décrivez l'évolution de la concentration en CO₂ atmosphérique entre 1960 et 2020.",
+  consigne:"Donnez les valeurs de départ et d'arrivée, calculez l'augmentation totale et décrivez la tendance générale.",
+  indices:[],
+  chartConfig: LC(
+    "Concentration en CO₂ atmosphérique (1960-2020)",
+    "Année", "Concentration en CO₂ (ppm)",
+    [1960,1970,1980,1990,2000,2010,2020],
+    [["CO₂ atmosphérique",[316,325,338,354,369,390,414],'#f97316']],
+    300, 430
+  ),
+  aiContext:`Graphique : Concentration en CO₂ atmosphérique (Mauna Loa)
+Axe X : Année (1960-2020)
+Axe Y : CO₂ (ppm)
+Valeurs : 1960→316 ; 1970→325 ; 1980→338 ; 1990→354 ; 2000→369 ; 2010→390 ; 2020→414 ppm
+Tendance : augmentation continue et régulière. Hausse totale : +98 ppm en 60 ans. La courbe s'accentue légèrement avec le temps.`
+},
+
+{
+  id:17,matiere:'SVT',classe:'4ème',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Absorption intestinale du glucose (intolérance au lactose)',
+  source:"D'après annales Brevet – Académie de Strasbourg",
+  question:"Comparez l'absorption du glucose après ingestion de lactose chez un individu normal et chez un individu intolérant au lactose.",
+  consigne:"Décrivez les deux courbes et expliquez la différence observée.",
+  indices:[],
+  chartConfig: LC(
+    "Glycémie après ingestion de lactose",
+    "Temps (min)", "Glycémie (mmol/L)",
+    [0,30,60,90,120],
+    [
+      ["Individu normal (avec lactase)",[4.8,6.2,7.8,8.5,7.2],'#10b981'],
+      ["Individu intolérant (sans lactase)",[4.8,4.9,5.0,4.9,4.8],'#ef4444']
+    ],
+    3, 10
+  ),
+  aiContext:`Graphique : Glycémie après ingestion de lactose chez deux individus
+Axe X : Temps (min) après ingestion de lactose
+Axe Y : Glycémie (mmol/L)
+Individu normal (avec lactase) : 4,8→6,2→7,8→8,5 (max à 90min)→7,2. Augmentation de +3,7 mmol/L.
+Individu intolérant (sans lactase) : 4,8→4,9→5,0→4,9→4,8. Reste stable autour de 4,8-5,0 mmol/L (variation nulle).
+Interprétation : sans lactase, le lactose n'est pas digéré → pas de libération de glucose → glycémie stable.`
+},
+
+{
+  id:18,matiere:'SVT',classe:'Terminale',niveau:'inter',niveauLabel:'Intermédiaire',
+  titre:'Cinétique enzymatique (Michaëlis-Menten)',
+  source:"D'après TP biochimie – Terminale SVT",
+  question:"Décrivez l'évolution de la vitesse de la réaction enzymatique en fonction de la concentration en substrat. Identifiez la vitesse maximale.",
+  consigne:"La courbe présente-t-elle une saturation ? À partir de quelle concentration ?",
+  indices:[],
+  chartConfig: LC(
+    "Vitesse de réaction enzymatique selon [substrat]",
+    "Concentration en substrat (mmol/L)", "Vitesse de réaction (µmol/min)",
+    [0,1,2,4,8,16,32,64,128],
+    [["Vitesse réaction",[0,15,26,44,62,78,88,93,96],'#7c3aed']],
+    0, 110
+  ),
+  aiContext:`Graphique : Vitesse de réaction enzymatique (Michaëlis-Menten)
+Axe X : Concentration en substrat (mmol/L)
+Axe Y : Vitesse de réaction (µmol/min)
+Valeurs : 0→0 ; 1→15 ; 2→26 ; 4→44 ; 8→62 ; 16→78 ; 32→88 ; 64→93 ; 128→96
+Forme : augmentation hypbolique. Phase 1 (0-16 mmol/L) : augmentation rapide. Phase 2 (16-128 mmol/L) : ralentissement progressif, plateau à ~96 µmol/min (Vmax). Km ≈ 4 mmol/L (vitesse = Vmax/2).`
+},
+
+/* ── DIFFICILE 19-26 ─────────────────────────── */
+{
+  id:19,matiere:'SVT',classe:'3ème',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Pepsine et amylase salivaire selon le pH',
+  source:"D'après annales Brevet – Académie de Montpellier",
+  question:"Comparez l'activité de deux enzymes digestives (pepsine et amylase salivaire) en fonction du pH. Reliez chaque enzyme à son organe de fonctionnement.",
+  consigne:"Décrivez chaque courbe, comparez les optima de pH, et proposez une explication biologique.",
+  indices:[],
+  chartConfig: LC(
+    "Activité de deux enzymes digestives selon le pH",
+    "pH", "Activité enzymatique (unités relatives)",
+    [1,2,3,4,5,6,7,8,9,10],
+    [
+      ["Pepsine (estomac)",[2,10,18,12,5,2,1,0,0,0],'#ef4444'],
+      ["Amylase salivaire (bouche)",[0,0,1,5,12,18,20,15,8,2],'#4f46e5']
+    ],
+    0, 25
+  ),
+  aiContext:`Graphique : Activité de la pepsine et de l'amylase salivaire selon le pH
+Axe X : pH (1 à 10)
+Axe Y : Activité enzymatique (unités relatives)
+Pepsine : pH1→2 ; pH3→18 (optimum) ; pH5→5 ; pH8→0. Enzyme acide, optimum pH3 → estomac (pH1-3).
+Amylase salivaire : pH1→0 ; pH5→12 ; pH7→20 (optimum) ; pH9→8 ; pH10→2. Enzyme neutre, optimum pH7 → bouche (pH7).
+Comparaison : les deux courbes ont des formes en cloche avec des optima très différents. Les courbes ne se chevauchent pas significativement.`
+},
+
+{
+  id:20,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Courbe de dissociation de l\'oxyhémoglobine',
+  source:"D'après annales Bac – Académie de Bordeaux",
+  question:"Analysez les courbes de dissociation de l'oxyhémoglobine en conditions normales et en présence de CO₂ élevé. Expliquez les conséquences physiologiques.",
+  consigne:"Décrivez la forme sigmoïde de chaque courbe, comparez-les, et reliez à la physiologie de l'échange gazeux.",
+  indices:[],
+  chartConfig: LC(
+    "Saturation de l'hémoglobine en O₂",
+    "Pression partielle en O₂ (mmHg)", "Saturation Hb (%)",
+    [0,10,20,30,40,50,60,70,80,90,100],
+    [
+      ["Hb normale",[0,12,28,48,65,76,84,89,93,96,98],'#ef4444'],
+      ["Hb avec CO₂ élevé (effet Bohr)",[0,8,18,35,55,67,76,83,88,92,96],'#94a3b8']
+    ],
+    0, 110
+  ),
+  aiContext:`Graphique : Saturation de l'hémoglobine en O₂ (courbe de dissociation)
+Axe X : Pression partielle O₂ (mmHg) — 0 à 100 mmHg
+Axe Y : Saturation Hb (%)
+Hb normale : de 0% à 98%. Forme sigmoïde. À 100 mmHg (poumons) : 98% saturée. À 40 mmHg (tissus) : 65%.
+Hb avec CO₂ élevé (effet Bohr) : courbe décalée vers la droite. À 40 mmHg : 55% saturée (vs 65%). Libère davantage d'O₂ dans les tissus actifs.
+Conséquence : en présence de CO₂ (tissus en activité), l'Hb libère plus facilement son O₂.`
+},
+
+{
+  id:21,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Cycle menstruel — LH et FSH',
+  source:"D'après annales Bac SVT – Académie de Paris",
+  question:"Décrivez les variations des hormones LH et FSH au cours d'un cycle menstruel de 28 jours. Identifiez le moment de l'ovulation.",
+  consigne:"Donnez les valeurs des pics hormonaux avec les jours correspondants et expliquez leur rôle dans l'ovulation.",
+  indices:[],
+  chartConfig: LC(
+    "Variations de LH et FSH au cours du cycle menstruel",
+    "Jours du cycle", "Concentration hormonale (UI/L)",
+    [1,3,5,7,9,11,13,15,17,19,21,23,25,27,28],
+    [
+      ["LH",[2,2,3,3,4,6,48,4,3,2,2,2,2,2,2],'#f97316'],
+      ["FSH",[3,4,5,6,6,8,14,6,4,3,3,3,4,4,3],'#7c3aed']
+    ],
+    0, 58
+  ),
+  aiContext:`Graphique : Variations de LH et FSH pendant le cycle menstruel (28 jours)
+Axe X : Jours du cycle (1 à 28)
+Axe Y : Concentration (UI/L)
+LH : taux bas (2-6 UI/L) de J1 à J11 ; pic brutal à J13 : 48 UI/L ; retour à 2-4 UI/L de J15 à J28.
+FSH : légère élévation en début de cycle (3→8 UI/L de J1 à J11) ; pic modéré à J13 : 14 UI/L ; retour à 3-4 UI/L phase lutéale.
+Ovulation : déclenchée par le pic de LH à J13. Le pic de FSH accompagne le pic de LH.`
+},
+
+{
+  id:22,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Élimination d\'un médicament',
+  source:"D'après cours pharmacologie – Terminale SVT",
+  question:"Décrivez l'évolution de la concentration plasmatique d'un médicament après une dose unique. Identifiez la demi-vie.",
+  consigne:"La courbe suit-elle une décroissance exponentielle ? Calculez la demi-vie approximative à partir du graphique.",
+  indices:[],
+  chartConfig: LC(
+    "Élimination d'un médicament (décroissance plasmatique)",
+    "Temps (h)", "Concentration plasmatique (% de la dose initiale)",
+    [0,1,2,3,4,6,8,10,12,16,20,24],
+    [["Concentration",[100,82,67,55,45,30,20,13,9,4,2,1],'#ef4444']],
+    0, 115
+  ),
+  aiContext:`Graphique : Concentration plasmatique d'un médicament en fonction du temps
+Axe X : Temps (h) — 0 à 24h
+Axe Y : Concentration (% dose initiale)
+Valeurs : t=0→100% ; t=1→82% ; t=2→67% ; t=3→55% ; t=4→45% ; t=6→30% ; t=8→20% ; t=10→13% ; t=12→9% ; t=16→4% ; t=20→2% ; t=24→1%
+Forme : décroissance exponentielle. Demi-vie (t½) ≈ 2h (de 100% à ~50% en 2h, de 50% à ~25% entre 2 et 4h). Après 10h : moins de 13% restant.`
+},
+
+{
+  id:23,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Évolution du CO₂ et de la température globale',
+  source:"D'après données GIEC – rapport 2021",
+  question:"Analysez la relation entre l'évolution du CO₂ atmosphérique et l'anomalie de température globale entre 1880 et 2020.",
+  consigne:"Décrivez chaque courbe, puis mettez en évidence la corrélation entre les deux variables.",
+  indices:[],
+  chartConfig: LC(
+    "CO₂ atmosphérique et anomalie de température (1880-2020)",
+    "Année", "CO₂ (ppm) — Axe gauche / Anomalie T° (×100 °C)",
+    ['1880','1900','1920','1940','1960','1980','2000','2020'],
+    [
+      ["CO₂ (ppm)",[280,296,303,310,316,338,369,414],'#f97316'],
+      ["Anomalie T° (×100 °C)",[-20,-10,0,10,20,30,50,100],'#ef4444']
+    ],
+    -40, 450
+  ),
+  aiContext:`Graphique : CO₂ atmosphérique (ppm) et anomalie de température (×100°C) de 1880 à 2020
+Les deux variables sont représentées sur le même graphique avec des unités différentes.
+CO₂ : 1880→280 ppm ; 1960→316 ; 2000→369 ; 2020→414 ppm. Augmentation de +134 ppm en 140 ans.
+Anomalie T° (×100°C) : 1880→-0,20°C ; 1940→+0,10°C ; 2000→+0,50°C ; 2020→+1,00°C. Hausse de +1,2°C en 140 ans.
+Corrélation : les deux courbes augmentent en parallèle, en particulier depuis 1960. L'accélération est visible pour les deux variables après 1980.`
+},
+
+{
+  id:24,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Réponse immunitaire primaire et secondaire',
+  source:"D'après annales Bac – Académie de Lyon",
+  question:"Analysez l'évolution du taux d'anticorps lors d'une première et d'une deuxième injection d'un même antigène.",
+  consigne:"Comparez la rapidité, l'intensité et la durée des deux réponses immunitaires. Proposez une explication cellulaire.",
+  indices:[],
+  chartConfig: LC(
+    "Titre en anticorps lors des réponses immunitaires primaire et secondaire",
+    "Jours", "Titre en anticorps (µg/mL)",
+    [0,3,7,14,21,28,40,42,45,50,56,63,70],
+    [["Titre anticorps",[0,0,5,40,80,100,60,62,200,500,800,600,400],'#4f46e5']],
+    0, 900
+  ),
+  aiContext:`Graphique : Titre en anticorps lors de réponses immunitaires
+Axe X : Jours (0 à 70). 1ère injection à J0, 2ème injection à J40.
+Axe Y : Titre anticorps (µg/mL)
+1ère réponse (J0-J35) : délai ~7j, pic à J28 (100 µg/mL), puis diminution à 60 µg/mL.
+2ème réponse (après J40) : délai ~2-3j seulement, pic à J56 (800 µg/mL), soit 8× plus élevé.
+Comparaison : 2ème réponse plus rapide, plus intense (×8), et plus durable → présence de cellules mémoire.`
+},
+
+{
+  id:25,matiere:'SVT',classe:'Terminale',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Inhibition enzymatique par compétition',
+  source:"D'après TP biochimie Terminale – Académie de Lille",
+  question:"Comparez la cinétique de la même enzyme en présence ou en absence d'un inhibiteur compétitif. Analysez l'effet de l'inhibiteur.",
+  consigne:"Comparez les vitesses maximales et les concentrations à demi-saturation. Que peut-on déduire du mécanisme d'inhibition ?",
+  indices:[],
+  chartConfig: LC(
+    "Cinétique enzymatique avec et sans inhibiteur compétitif",
+    "Concentration en substrat (mmol/L)", "Vitesse (µmol/min)",
+    [0,1,2,4,8,16,32,64,128],
+    [
+      ["Sans inhibiteur",[0,15,26,44,62,78,88,93,96],'#10b981'],
+      ["Avec inhibiteur compétitif",[0,7,13,25,40,57,70,80,86],'#ef4444']
+    ],
+    0, 110
+  ),
+  aiContext:`Graphique : Cinétique enzymatique avec et sans inhibiteur compétitif
+Axe X : [Substrat] (mmol/L)
+Axe Y : Vitesse (µmol/min)
+Sans inhibiteur : de 0 à 96 µmol/min, Vmax ≈ 96, Km ≈ 4 mmol/L.
+Avec inhibiteur : de 0 à 86 µmol/min aux mêmes concentrations. Vmax identique (~96, atteinte à [S] plus élevée). Km apparent ≈ 8 mmol/L (doublé).
+Conclusion : inhibiteur compétitif → la Vmax est inchangée mais nécessite davantage de substrat pour être atteinte → augmentation du Km apparent.`
+},
+
+{
+  id:26,matiere:'SVT',classe:'3ème',niveau:'difficile',niveauLabel:'Difficile',
+  titre:'Évolution de la résistance aux antibiotiques',
+  source:"D'après rapport OMS – données adaptées cours SVT",
+  question:"Analysez l'évolution de la résistance bactérienne à deux antibiotiques entre 1950 et 2020. Quelles conclusions peut-on tirer ?",
+  consigne:"Décrivez chaque courbe, comparez leur évolution, et proposez une explication fondée sur la sélection naturelle.",
+  indices:[],
+  chartConfig: LC(
+    "Évolution de la résistance bactérienne aux antibiotiques",
+    "Année", "Fréquence de résistance (%)",
+    [1950,1960,1970,1980,1990,2000,2010,2020],
+    [
+      ["Résistance à la pénicilline",[5,15,30,50,65,72,78,85],'#ef4444'],
+      ["Résistance à la méticilline",[0,0,5,15,30,45,55,65],'#f97316']
+    ],
+    0, 100
+  ),
+  aiContext:`Graphique : Fréquence de résistance bactérienne (%) à la pénicilline et à la méticilline (1950-2020)
+Axe X : Année (1950-2020)
+Axe Y : Fréquence de résistance (%)
+Pénicilline : 1950→5% ; 1960→15% ; 1980→50% ; 2020→85%. Augmentation continue de +80 points en 70 ans.
+Méticilline : 1950→0% ; 1970→5% (premier apparition) ; 2000→45% ; 2020→65%. Apparition plus tardive mais augmentation rapide.
+Tendance : les deux courbes montrent une augmentation continue. La résistance à la pénicilline est toujours supérieure car son utilisation est plus ancienne.`
+},
+
+/* ── EXPERT 27-30 ────────────────────────────── */
+{
+  id:27,matiere:'SVT',classe:'Terminale',niveau:'expert',niveauLabel:'Expert',
+  titre:'Régulation de la glycémie : insuline et glucagon',
+  source:"D'après annales Bac SVT – Académie de Paris",
+  question:"En vous appuyant sur les trois courbes, analysez le rôle de l'insuline et du glucagon dans la régulation de la glycémie après un repas.",
+  consigne:"Décrivez l'évolution de chaque variable, montrez les relations de cause à effet entre elles, et identifiez le mécanisme de régulation.",
+  indices:[],
+  chartConfig: LC(
+    "Régulation de la glycémie : glycémie, insuline et glucagon",
+    "Temps (min)", "Valeurs normalisées (glycémie g/L | insuline µUI/mL ÷10 | glucagon pg/mL ÷10)",
+    [0,30,60,90,120,150,180,210,240],
+    [
+      ["Glycémie (g/L)",[0.80,1.40,1.30,1.10,0.95,0.85,0.80,0.80,0.80],'#4f46e5'],
+      ["Insuline (µUI/mL ÷10)",[0.5,4.5,4.0,3.0,1.8,1.0,0.6,0.5,0.5],'#10b981'],
+      ["Glucagon (pg/mL ÷10)",[8.0,3.0,3.5,4.2,6.0,7.2,8.0,8.0,8.0],'#f97316']
+    ],
+    0, 5
+  ),
+  aiContext:`Graphique : Régulation glycémique avec 3 variables après un repas (valeurs normalisées pour lisibilité)
+Glycémie réelle : t=0→0,80 g/L ; t=30→1,40 g/L (pic) ; t=180→0,80 g/L (retour normal)
+Insuline réelle : t=0→5 µUI/mL ; t=30→45 µUI/mL (pic, simultané glycémie) ; t=180→6 µUI/mL
+Glucagon réel : t=0→80 pg/mL ; t=30→30 pg/mL (min, inverse insuline) ; t=180→80 pg/mL
+Relations : hausse glycémie → hausse insuline (sécrétée par pancréas) → baisse glycémie. Hausse glycémie → baisse glucagon. Retour valeur normale à t=180 min = régulation par rétrocontrôle négatif.`
+},
+
+{
+  id:28,matiere:'SVT',classe:'Terminale',niveau:'expert',niveauLabel:'Expert',
+  titre:'Potentiel d\'action d\'une fibre nerveuse',
+  source:"D'après TP neurophysiologie – Terminale SVT",
+  question:"Décrivez les différentes phases du potentiel d'action enregistré sur une fibre nerveuse. Nommez et expliquez chaque phase.",
+  consigne:"Identifiez et nommez les 4 phases (repos, dépolarisation, repolarisation, hyperpolarisation) avec les valeurs de potentiel et les durées correspondantes.",
+  indices:[],
+  chartConfig: LC(
+    "Potentiel d'action d'une fibre nerveuse",
+    "Temps (ms)", "Potentiel de membrane (mV)",
+    [0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],
+    [["Potentiel de membrane",[-70,-70,-65,10,35,30,5,-80,-78,-72,-70],'#7c3aed']],
+    -90, 45
+  ),
+  aiContext:`Graphique : Potentiel d'action d'une fibre nerveuse
+Axe X : Temps (ms) — 0 à 5 ms
+Axe Y : Potentiel de membrane (mV)
+Valeurs : t=0→-70mV (repos) ; t=1,0→-65mV (seuil) ; t=1,5→+10mV ; t=2,0→+35mV (pic dépolarisation) ; t=2,5→+30mV ; t=3,0→+5mV ; t=3,5→-80mV (hyperpolarisation max) ; t=4,5→-72mV ; t=5,0→-70mV (repos)
+Phases : 1) Repos (-70 mV) 0-1ms ; 2) Dépolarisation (montée rapide -70→+35 mV en 1ms) 1,0-2,0ms ; 3) Repolarisation (redescente +35→-80 mV en 1,5ms) 2,0-3,5ms ; 4) Hyperpolarisation (-80mV) 3,5-4,5ms ; 5) Retour repos`
+},
+
+{
+  id:29,matiere:'SVT',classe:'Terminale',niveau:'expert',niveauLabel:'Expert',
+  titre:'Activité enzymatique de trois types d\'organismes',
+  source:"D'après cours enzymologie – Terminale SVT spécialité",
+  question:"Comparez l'activité enzymatique d'un organisme psychrophile, d'un mésophile et d'un thermophile en fonction de la température. Déduisez l'habitat probable de chaque organisme.",
+  consigne:"Identifiez l'optimum de chaque organisme, les valeurs maximales, et déduisez les contraintes environnementales de chacun.",
+  indices:[],
+  chartConfig: LC(
+    "Activité enzymatique de 3 types d'organismes selon la température",
+    "Température (°C)", "Activité enzymatique (unités relatives)",
+    [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
+    [
+      ["Psychrophile (bactérie arctique)",[5,22,48,62,55,35,15,5,0,0,0,0,0,0,0],'#0ea5e9'],
+      ["Mésophile (E. coli)",[0,2,8,20,40,62,80,88,72,40,15,3,0,0,0],'#10b981'],
+      ["Thermophile (bactérie source chaude)",[0,0,0,2,8,18,32,50,72,88,95,90,75,45,20],'#ef4444']
+    ],
+    0, 110
+  ),
+  aiContext:`Graphique : Activité enzymatique de 3 organismes selon la température (0-70°C)
+Psychrophile : optimum à 15°C (62 unités), active de 0 à ~35°C, inactive au-delà de 40°C → milieu froid (banquise, fonds océaniques froids)
+Mésophile (E. coli) : optimum à 35°C (88 unités), active de 5 à 45°C → milieu tempéré (intestin humain, sols)
+Thermophile : optimum à 50°C (95 unités), active de 20 à 70°C, maximum vers 50°C → sources chaudes, milieux volcaniques
+Comparaison des optima : psychrophile (15°C) < mésophile (35°C) < thermophile (50°C). Les Vmax sont proches (~62, 88, 95 unités).`
+},
+
+{
+  id:30,matiere:'SVT',classe:'Terminale',niveau:'expert',niveauLabel:'Expert',
+  titre:'Réponse immunitaire : lymphocytes et anticorps',
+  source:"D'après annales Bac SVT – Académie de Bordeaux",
+  question:"En analysant les trois courbes, décrivez la cinétique de la réponse immunitaire lors de deux injections successives du même antigène. Identifiez le rôle de chaque population cellulaire.",
+  consigne:"Décrivez chaque courbe, établissez les relations temporelles entre les populations, et expliquez le mécanisme de mémoire immunitaire.",
+  indices:[],
+  chartConfig: LC(
+    "Cinétique de la réponse immunitaire (2 injections)",
+    "Jours", "Valeurs (anticorps µg/mL ÷10 | lymphocytes ×10³/mL)",
+    [0,3,7,14,21,28,35,42,45,49,56,63,70],
+    [
+      ["Anticorps (µg/mL ÷10)",[0,0,2,20,40,50,30,28,32,100,200,180,120],'#4f46e5'],
+      ["Lymphocytes B (×10³/mL)",[1,2,5,12,10,6,3,2,3,8,15,12,8],'#10b981'],
+      ["Lymphocytes T cytotox. (×10³/mL)",[1,1,8,15,12,8,4,3,5,20,30,25,15],'#ef4444']
+    ],
+    0, 220
+  ),
+  aiContext:`Graphique : Cinétique immunitaire lors de 2 injections (J0 et J42)
+Les valeurs d'anticorps sont divisées par 10 pour lisibilité sur le même graphique.
+1ère injection (J0) : Lymphocytes T cytotox. : pic à J14 (15×10³/mL). Lymphocytes B : pic à J14 (12×10³/mL). Anticorps réels : pic à J28 (500 µg/mL).
+Déclin J28-J42 : populations reviennent à des valeurs basales (cellules mémoire persistantes).
+2ème injection (J42) : réponse beaucoup plus rapide et intense. Lymphocytes T : pic à J56 (30×10³/mL, ×2). Lymphocytes B : pic à J56 (15×10³/mL, ×1,25). Anticorps réels : pic à J56 (2000 µg/mL, ×4).
+Relation temporelle : lymphocytes T agissent en 1er, puis lymphocytes B, puis anticorps (délai de quelques jours).`
+},
+
+/* ── EXERCICE PERSONNALISÉ ──────────────────── */
+{
+  id:31,matiere:'—',classe:'—',niveau:'custom',niveauLabel:'Perso',
+  titre:'Votre propre exercice',
+  source:'Chargez votre document',
+  question:'',
+  consigne:"Ajoutez votre graphique, saisissez la question et le contexte pour l'IA, puis lancez la correction.",
+  indices:[],
+  chartConfig:null
+}
+];
+
+/* ══════════════════════════════════════════════════
+   ÉTAT
+══════════════════════════════════════════════════ */
+const S = {
+  idx:0, phase:'answering', iteration:1,
+  prevFeedback:null, chartInst:null,
+  done: new Set(),
+  hintsShown:0,
+  apiKey: localStorage.getItem('agApiKey')||''
+};
+
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+function init() {
+  if (S.apiKey) {
+    document.getElementById('api-key-input').value = S.apiKey;
+    setApiStatus('✅ Clé API chargée','#059669');
+  }
+  buildNav();
+  loadExercise(0);
+}
+
+/* ══════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════ */
+const GROUPS = [
+  {label:'🟢 Facile',cls:'nl-facile',range:[0,7],active:'active-facile'},
+  {label:'🟡 Intermédiaire',cls:'nl-inter',range:[8,17],active:'active-inter'},
+  {label:'🔴 Difficile',cls:'nl-difficile',range:[18,25],active:'active-difficile'},
+  {label:'🟣 Expert',cls:'nl-expert',range:[26,29],active:'active-expert'},
+  {label:'📤 Perso',cls:'nl-custom',range:[30,30],active:'active-custom'}
+];
+
+function buildNav() {
+  const nav = document.getElementById('nav-levels');
+  nav.innerHTML = '';
+  GROUPS.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'nav-group';
+    const header = `<div class="nav-group-header"><span class="nav-group-label ${g.cls}">${g.label}</span></div>`;
+    let dots = '<div class="nav-dots">';
+    for (let i = g.range[0]; i <= g.range[1]; i++) {
+      const ex = EXERCISES[i];
+      let cls = 'ex-dot';
+      if (i === S.idx) cls += ' '+g.active;
+      else if (S.done.has(i)) cls += ' done';
+      const label = ex.niveau==='custom' ? '📤' : (i+1);
+      dots += `<button class="${cls}" onclick="loadExercise(${i})" title="${ex.titre}">${label}</button>`;
+    }
+    dots += '</div>';
+    div.innerHTML = header + dots;
+    nav.appendChild(div);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   CHARGEMENT EXERCICE
+══════════════════════════════════════════════════ */
+function loadExercise(idx) {
+  S.idx = idx; S.phase='answering'; S.iteration=1; S.prevFeedback=null; S.hintsShown=0;
+  const ex = EXERCISES[idx];
+
+  document.getElementById('ex-titre').textContent = ex.titre;
+  document.getElementById('ex-source').textContent = ex.source;
+
+  // Badges
+  const bEl = document.getElementById('ex-badges');
+  const badgeMap = {
+    facile:['badge-facile','🟢 Facile'],
+    inter:['badge-inter','🟡 Intermédiaire'],
+    difficile:['badge-difficile','🔴 Difficile'],
+    expert:['badge-expert','🟣 Expert'],
+    custom:['badge-matiere','✏️ Perso']
+  };
+  const [bc, bl] = badgeMap[ex.niveau]||['badge-matiere',ex.niveauLabel];
+  bEl.innerHTML = `<span class="badge ${bc}">${bl}</span>`;
+  if (ex.matiere!=='—') bEl.innerHTML+=`<span class="badge badge-matiere">${ex.matiere}</span>`;
+  if (ex.classe!=='—') bEl.innerHTML+=`<span class="badge badge-classe">${ex.classe}</span>`;
+
+  // Progression
+  document.getElementById('ex-progress-label').textContent=`${idx+1} / ${EXERCISES.length}`;
+  document.getElementById('ex-progress-bar').style.width=`${((idx+1)/EXERCISES.length)*100}%`;
+
+  // Graphique
+  const chartWrap = document.getElementById('chart-wrap');
+  const imgDisp   = document.getElementById('image-display');
+  const upZone    = document.getElementById('upload-zone');
+
+  if (ex.chartConfig) {
+    chartWrap.style.display='block'; imgDisp.style.display='none'; upZone.style.display='none';
+    renderChart(ex.chartConfig);
+  } else {
+    chartWrap.style.display='none'; imgDisp.style.display='none'; upZone.style.display='flex';
+    if (S.chartInst){S.chartInst.destroy();S.chartInst=null;}
+  }
+
+  // Custom box
+  document.getElementById('custom-q-box').classList.toggle('visible', ex.niveau==='custom');
+
+  // Question
+  document.getElementById('ex-question').textContent = ex.question||'Rédigez votre question dans les champs ci-dessus.';
+  document.getElementById('ex-consigne').textContent = ex.consigne;
+
+  // Indices
+  const hintsSection = document.getElementById('hints-section');
+  const hintList = document.getElementById('hint-list');
+  hintList.innerHTML = '';
+  if (ex.indices && ex.indices.length>0) {
+    hintsSection.style.display='block';
+    document.getElementById('btn-hint').disabled=false;
+    document.getElementById('btn-hint').textContent='Voir un indice';
+  } else {
+    hintsSection.style.display='none';
+  }
+
+  // Reset answer
+  const ta = document.getElementById('student-answer');
+  ta.value=''; ta.className='';
+  document.getElementById('char-count').textContent='0 caractère';
+  document.getElementById('iteration-badge').style.display='none';
+
+  hideFeedback(); hideError(); buildNav();
+}
+
+/* ══════════════════════════════════════════════════
+   INDICES
+══════════════════════════════════════════════════ */
+function showNextHint() {
+  const ex = EXERCISES[S.idx];
+  if (!ex.indices || S.hintsShown >= ex.indices.length) return;
+  const list = document.getElementById('hint-list');
+  const item = document.createElement('div');
+  item.className = 'hint-item';
+  item.innerHTML = `<span class="hint-num">${S.hintsShown+1}</span><span>${ex.indices[S.hintsShown]}</span>`;
+  list.appendChild(item);
+  S.hintsShown++;
+  const btn = document.getElementById('btn-hint');
+  if (S.hintsShown >= ex.indices.length) { btn.disabled=true; btn.textContent='Tous les indices affichés'; }
+}
+
+/* ══════════════════════════════════════════════════
+   CHART.JS
+══════════════════════════════════════════════════ */
+function renderChart(config) {
+  if (S.chartInst){S.chartInst.destroy();S.chartInst=null;}
+  S.chartInst = new Chart(document.getElementById('chart-canvas'), config);
+}
+
+/* ══════════════════════════════════════════════════
+   IMAGE UPLOAD
+══════════════════════════════════════════════════ */
+function handleFileInput(e){const f=e.target.files[0];if(f)loadImg(f);}
+function onDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('dragover');}
+function onDragLeave(){document.getElementById('upload-zone').classList.remove('dragover');}
+function onDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadImg(f);}
+function loadImg(f){
+  const r=new FileReader();
+  r.onload=e=>{
+    const img=document.getElementById('image-display');
+    img.src=e.target.result; img.style.display='block';
+    document.getElementById('upload-zone').style.display='none';
+  };
+  r.readAsDataURL(f);
+}
+
+/* ══════════════════════════════════════════════════
+   TEXTAREA
+══════════════════════════════════════════════════ */
+function onAnswerInput(){
+  const n=document.getElementById('student-answer').value.length;
+  document.getElementById('char-count').textContent=n+(n<=1?' caractère':' caractères');
+}
+
+/* ══════════════════════════════════════════════════
+   SOUMISSION
+══════════════════════════════════════════════════ */
+async function submitAnswer() {
+  const apiKey = localStorage.getItem('agApiKey')||'';
+  if (!apiKey){showError('⚙️ Renseignez votre clé API Anthropic dans les paramètres.');toggleSettings();return;}
+
+  const ex = EXERCISES[S.idx];
+  const txt = document.getElementById('student-answer').value.trim();
+  if (txt.length<10){showError('Réponse trop courte. Rédigez une analyse complète.');return;}
+
+  let ctx = ex.aiContext;
+  if (ex.niveau==='custom'){
+    const cq=document.getElementById('custom-question').value.trim();
+    const cc=document.getElementById('custom-context').value.trim();
+    if (!cc){showError("Renseignez le contexte pour l'IA.");return;}
+    document.getElementById('ex-question').textContent=cq||'Analysez ce graphique.';
+    ctx=`Question : ${cq}\n\nContexte :\n${cc}`;
+  }
+
+  setLoading(true); hideError();
+  try {
+    const res = await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({api_key:apiKey,student_text:txt,exercise_context:ctx,iteration:S.iteration,previous_feedback:S.prevFeedback})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error||'Erreur serveur');
+    S.prevFeedback=data; S.phase='feedback';
+    showFeedback(data);
+  } catch(e){
+    showError('❌ '+(e.message||'Erreur lors de la correction.'));
+  } finally {setLoading(false);}
+}
+
+/* ══════════════════════════════════════════════════
+   AFFICHAGE FEEDBACK
+══════════════════════════════════════════════════ */
+function showFeedback(d) {
+  const panel=document.getElementById('feedback-panel');
+  panel.classList.remove('visible');
+
+  const score=Math.max(0,Math.min(100,d.score||0));
+  document.getElementById('score-num').textContent=score;
+  const circ=2*Math.PI*50;
+  document.getElementById('score-arc').setAttribute('stroke-dasharray',`${circ*(score/100)} ${circ*(1-score/100)}`);
+  document.getElementById('score-arc').setAttribute('stroke',score>=80?'#10b981':score>=55?'#f59e0b':'#ef4444');
+
+  const niveauColors={
+    'Excellent':'#dcfce7:#059669','Très bien':'#d1fae5:#065f46','Bien':'#dbeafe:#1d4ed8',
+    'Satisfaisant':'#fef3c7:#92400e','En progrès':'#ffe4e6:#9f1239','Insuffisant':'#fee2e2:#7f1d1d'
+  };
+  const nb=document.getElementById('niveau-badge');
+  const [bg,col]=(niveauColors[d.niveau_global]||'#f3f4f6:#374151').split(':');
+  nb.textContent=d.niveau_global||'—'; nb.style.background=bg; nb.style.color=col;
+
+  document.getElementById('score-explication').textContent=d.explication_score||'';
+  document.getElementById('score-encouragement').textContent=d.encouragement||'';
+  document.getElementById('points-positifs').innerHTML=(d.points_positifs||[]).map(p=>`<li><span class="point-icon">✅</span>${p}</li>`).join('');
+  document.getElementById('points-ameliorer').innerHTML=(d.points_ameliorer||[]).map(p=>`<li><span class="point-icon">⚠️</span>${p}</li>`).join('');
+  document.getElementById('improved-phrase-text').textContent=d.phrase_amelioree||'';
+
+  document.getElementById('next-banner').style.display=(score>=70||S.iteration>=3)?'flex':'none';
+  const ib=document.getElementById('iteration-badge');
+  ib.style.display='inline-block'; ib.textContent=`Tentative ${S.iteration}`;
+
+  if (score>=70) {S.done.add(S.idx); buildNav();}
+
+  void panel.offsetWidth; panel.classList.add('visible');
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ══════════════════════════════════════════════════
+   ACTIONS FEEDBACK
+══════════════════════════════════════════════════ */
+function useImprovedPhrase(){
+  const txt=document.getElementById('improved-phrase-text').textContent;
+  const ta=document.getElementById('student-answer');
+  ta.value=txt; ta.className='improved-filled';
+  S.iteration++;
+  document.getElementById('iteration-badge').textContent=`Tentative ${S.iteration}`;
+  hideFeedback();
+  ta.scrollIntoView({behavior:'smooth',block:'center'}); ta.focus();
+}
+async function validateImproved(){
+  document.getElementById('student-answer').value=document.getElementById('improved-phrase-text').textContent;
+  document.getElementById('student-answer').className='improved-filled';
+  S.iteration++;
+  await submitAnswer();
+}
+function nextExercise(){
+  if (S.idx+1<EXERCISES.length){loadExercise(S.idx+1);document.querySelector('.app-header').scrollIntoView({behavior:'smooth'});}
+  else showError('🎉 Bravo ! Vous avez terminé tous les exercices !');
+}
+
+/* ══════════════════════════════════════════════════
+   MODAL MÉTHODE
+══════════════════════════════════════════════════ */
+function openMethod(){document.getElementById('method-modal').classList.add('open');}
+function closeMethod(){document.getElementById('method-modal').classList.remove('open');}
+function closeMethodIfBg(e){if(e.target===document.getElementById('method-modal'))closeMethod();}
+
+/* ══════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════ */
+function hideFeedback(){document.getElementById('feedback-panel').classList.remove('visible');}
+function showError(m){const el=document.getElementById('error-toast');el.textContent=m;el.classList.add('visible');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function hideError(){document.getElementById('error-toast').classList.remove('visible');}
+function setLoading(on){
+  const btn=document.getElementById('btn-validate');
+  btn.innerHTML=on?'<span class="spinner"></span> Correction en cours…':'✅ Valider ma réponse';
+  btn.disabled=on;
+}
+function toggleSettings(){document.getElementById('settings-panel').classList.toggle('open');}
+function saveApiKey(){
+  const k=document.getElementById('api-key-input').value.trim();
+  if (!k){setApiStatus('⚠️ Clé vide','#d97706');return;}
+  localStorage.setItem('agApiKey',k); S.apiKey=k;
+  setApiStatus('✅ Clé enregistrée !','#059669');
+  setTimeout(()=>document.getElementById('settings-panel').classList.remove('open'),900);
+}
+function setApiStatus(txt,col){const el=document.getElementById('api-status');el.textContent=txt;el.style.color=col;}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
