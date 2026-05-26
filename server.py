@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
 Serveur pour "Analyse de Graphiques Scientifiques"
-Installation : pip3 install flask anthropic
+Installation : pip3 install flask anthropic gunicorn
 Lancement    : python3 server.py   →   http://localhost:5000
+
+Variable d'environnement optionnelle :
+  ANTHROPIC_API_KEY  →  si définie, les élèves n'ont pas besoin de saisir leur clé
 """
 from flask import Flask, request, jsonify, send_from_directory
 import json, os
@@ -10,22 +13,33 @@ import json, os
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Clé API côté serveur (optionnelle — définie dans les variables d'environnement Render)
+SERVER_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '').strip()
+
 
 @app.route('/')
 def index():
     return send_from_directory(BASE_DIR, 'index.html')
 
 
+@app.route('/api/status')
+def status():
+    """Indique au frontend si une clé API est configurée côté serveur."""
+    return jsonify({'server_key': bool(SERVER_API_KEY)})
+
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
     try:
         data              = request.json
-        api_key           = data.get('api_key', '').strip()
         student_text      = data.get('student_text', '').strip()
         exercise_context  = data.get('exercise_context', '')
         matiere           = data.get('matiere', 'svt').lower()
         iteration         = data.get('iteration', 1)
         previous_feedback = data.get('previous_feedback', None)
+
+        # Priorité : clé serveur (variable d'env) > clé saisie par l'élève
+        api_key = SERVER_API_KEY or data.get('api_key', '').strip()
 
         if not api_key:
             return jsonify({'error': 'Clé API Anthropic manquante. Renseignez-la dans ⚙ Paramètres.'}), 400
@@ -117,10 +131,12 @@ Réponds UNIQUEMENT en JSON valide (sans texte avant ni après), format exact :
 
 
 if __name__ == '__main__':
+    mode = "clé serveur active ✅" if SERVER_API_KEY else "clé à saisir dans l'app ⚙"
     print("\n" + "=" * 52)
     print("  📊  Analyse de Graphiques Scientifiques")
     print("=" * 52)
-    print("  🌐  http://localhost:5000")
-    print("  🔑  Clé API : à saisir dans l'app (⚙)")
+    print(f"  🌐  http://localhost:5000")
+    print(f"  🔑  {mode}")
     print("=" * 52 + "\n")
-    app.run(debug=False, port=5000, host='127.0.0.1')
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, port=port, host='0.0.0.0')
